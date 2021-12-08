@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<layout>
+    <adminstedgerintegration_admin_integration>
+        <reference name="content">
+            <block type="core/template" name="stedgerintegration" template="stedger/integration.phtml"/>
+        </reference>
+    </adminstedgerintegration_admin_integration>
+</layout>

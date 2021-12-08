@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<config>
+    <acl>
+        <resources>
+            <admin>
+                <children>
+                    <stedger>
+                        <title>Stedger</title>
+                        <children>
+                            <stedgerconsumerintegration translate="title" module="stedgerconsumerintegration">
+                                <title>Consumers Integration</title>
+                            </stedgerconsumerintegration>
+                        </children>
+                    </stedger>
+                </children>
+            </admin>
+        </resources>
+    </acl>
+</config>

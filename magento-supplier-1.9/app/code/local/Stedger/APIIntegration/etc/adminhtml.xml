@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<config>
+    <menu>
+        <stedger translate="title" module="stedgerintegration">
+            <title>Stedger</title>
+            <sort_order>50</sort_order>
+            <children>
+                <integration translate="title" module="stedgerintegration">
+                    <title>Integration</title>
+                    <action>adminstedgerintegration/admin/integration</action>
+                    <sort_order>1</sort_order>
+                </integration>
+            </children>
+        </stedger>
+    </menu>
+    <acl>
+        <resources>
+            <admin>
+                <children>
+                    <stedger>
+                        <title>Stedger</title>
+                        <children>
+                            <integration translate="title" module="stedgerintegration">
+                                <title>Integration</title>
+                            </integration>
+                        </children>
+                    </stedger>
+                </children>
+            </admin>
+        </resources>
+    </acl>
+</config>

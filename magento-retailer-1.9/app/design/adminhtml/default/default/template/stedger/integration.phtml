@@ -1,0 +1,48 @@
+<style>
+    .start-integration {
+        margin-bottom: 20px;
+    }
+    #content-processing {
+        max-height: 500px;
+        overflow: scroll;
+        background-color: #0a0a0a;
+        color: #ffffff
+    }
+    #content-processing p {
+        margin-left: 10px;
+    }
+</style>
+<script type="text/javascript">
+    var startintegrationurl = '<?= Mage::helper('adminhtml')->getUrl('adminstedgerintegration/admin/startintegration') ?>';
+    var statusintegrationurl = '<?= Mage::helper('adminhtml')->getUrl('adminstedgerintegration/admin/getintegrationprocess') ?>';
+
+    startStedgerIntegration = function () {
+
+        var process = setInterval(
+            function () {
+                new Ajax.Request(statusintegrationurl, {
+                    method: 'get',
+                    onSuccess: function (response) {
+                        var html = JSON.parse(response.responseText).content;
+                        document.getElementById('content-processing').innerHTML = html;
+                    }
+                });
+            }, 1000);
+
+        new Ajax.Request(startintegrationurl, {
+            method: 'get',
+            onSuccess: function (response) {
+                clearInterval(process);
+
+                var result = JSON.parse(response.responseText);
+
+                if (result.status == 'error') {
+                    alert(result.message);
+                }
+            }
+        });
+    }
+</script>
+
+<button class="start-integration scalable" type="button" onclick="startStedgerIntegration()">Start Integration</button>
+<div id="content-processing"></div>

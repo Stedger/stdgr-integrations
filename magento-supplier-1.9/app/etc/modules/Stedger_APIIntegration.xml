@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<config>
+    <modules>
+        <Stedger_APIIntegration>
+            <active>true</active>
+            <codePool>local</codePool>
+        </Stedger_APIIntegration>
+    </modules>
+</config>

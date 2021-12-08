@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<config>
+    <tabs>
+        <stedgerintegration translate="label" module="stedgerconsumerintegration">
+            <label>Stedger</label>
+            <sort_order>1000</sort_order>
+        </stedgerintegration>
+    </tabs>
+    <sections>
+        <stedgerconsumerintegration translate="label">
+            <label>Consumers Integration</label>
+            <tab>stedgerintegration</tab>
+            <sort_order>1000</sort_order>
+            <show_in_default>1</show_in_default>
+            <show_in_website>1</show_in_website>
+            <show_in_store>1</show_in_store>
+            <groups>
+                <settings translate="label">
+                    <label>Api</label>
+                    <frontend_type>text</frontend_type>
+                    <sort_order>10</sort_order>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>1</show_in_website>
+                    <show_in_store>1</show_in_store>
+                    <fields>
+                        <public_key translate="label">
+                            <label>Public key:</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>20</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </public_key>
+                        <secret_key translate="label">
+                            <label>Secret key:</label>
+                            <frontend_type>text</frontend_type>
+                            <sort_order>20</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                            <backend_model>stedgerconsumerintegration/system_config_backend_keys</backend_model>
+                        </secret_key>
+                    </fields>
+                </settings>
+
+                <products translate="label">
+                    <label>Products</label>
+                    <frontend_type>text</frontend_type>
+                    <sort_order>20</sort_order>
+                    <show_in_default>1</show_in_default>
+                    <show_in_website>1</show_in_website>
+                    <show_in_store>1</show_in_store>
+
+                    <fields>
+                        <add_tags translate="label">
+                            <label>Add Tags</label>
+                            <frontend_type>select</frontend_type>
+                            <source_model>adminhtml/system_config_source_yesno</source_model>
+                            <sort_order>30</sort_order>
+                            <show_in_default>1</show_in_default>
+                            <show_in_website>1</show_in_website>
+                            <show_in_store>1</show_in_store>
+                        </add_tags>
+                    </fields>
+                </products>
+            </groups>
+        </stedgerconsumerintegration>
+    </sections>
+</config>
