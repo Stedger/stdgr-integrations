@@ -59,10 +59,11 @@ class Stedger_APIIntegration_Model_Observer
         $storeId = isset($productStores[0]) ? $productStores[0] : 1;
         $store = Mage::app()->getStore($storeId);
 
-        $storeLocale = Mage::getStoreConfig('general/locale/code', $storeId);
-
-        $countryCode = substr($storeLocale, 3);
-        $localeCode = substr($storeLocale, 0, 2);
+//        $storeLocale = Mage::getStoreConfig('general/locale/code', $storeId);
+        $localeCode = 'dk';
+//        $countryCode = substr($storeLocale, 3);
+//        $localeCode = substr($storeLocale, 0, 2);
+        $countryCode = 'DK';
 
         $apiProduct = [
             "foreignId" => $product->getId(),
@@ -75,8 +76,8 @@ class Stedger_APIIntegration_Model_Observer
         if (count($productStores) > 1) {
             foreach ($productStores as $productStoreId) {
                 if ($storeId == $productStoreId) continue;
-                $storeLocale = Mage::getStoreConfig('general/locale/code', $storeId);
-                $localeCode = substr($storeLocale, 0, 2);
+//                $storeLocale = Mage::getStoreConfig('general/locale/code', $storeId);
+//                $localeCode = substr($storeLocale, 0, 2);
 
                 $apiProduct['infoLayers'][] = [
                     'locale' => $localeCode,

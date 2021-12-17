@@ -13,11 +13,11 @@ class Stedger_APIIntegration_Model_Integration
 
         $customerId = isset($apiData['parentOrder']['company']['recipientRelation']['appSettings'][0]['accountNumber']) ?
             $apiData['parentOrder']['company']['recipientRelation']['appSettings'][0]['accountNumber'] : 0;
-  
+
         $customer = Mage::getModel('customer/customer')->setWebsiteId($website->getId())->load($customerId);
 
         if (!$customer->getId()) {
-            throw new \Exception($this->__('Customer not found.'));
+            throw new Exception(Mage::helper('stedgerintegration')->__('Customer not found.'));
         } else {
             $billingAddress['email'] = $customer->getEmail();
             $billingAddress['firstname'] = $customer->getFirstname();

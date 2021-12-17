@@ -35,7 +35,7 @@ class Stedger_ConsumersApiIntegration_Model_System_Config_Backend_Keys extends M
                 ]);
 
                 Mage::getModel('stedgerconsumerintegration/api')->request('post', 'webhooks', [
-                    'description' => 'Update Product',
+                    'description' => 'Fulfillment Created',
                     'enabledEvents' => ["fulfillment.created"],
                     'url' => Mage::getUrl('stedgerconsumerintegration/api/shipment'),
                 ]);

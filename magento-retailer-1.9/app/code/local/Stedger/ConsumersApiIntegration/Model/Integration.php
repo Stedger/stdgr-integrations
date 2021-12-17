@@ -92,17 +92,6 @@ class Stedger_ConsumersApiIntegration_Model_Integration
 
             try {
                 $product->save();
-
-//                Mage::getSingleton('catalog/product_action')->updateAttributes(
-//                    [$product->getId()],
-//                    ['status' => Mage_Catalog_Model_Product_Status::STATUS_DISABLED],
-//                    Mage::app()->getStore()->getStoreId()
-//                );
-
-//                $product = Mage::getModel('catalog/product')->load($product->getId());
-//                $product->setStatus();
-//                $product->save();
-
             } catch (Exception $e) {
                 Mage::helper('stedgerconsumerintegration')->log('Error "product create": ' . $e->getMessage());
             }
@@ -123,6 +112,8 @@ class Stedger_ConsumersApiIntegration_Model_Integration
                 Mage::getModel('tag/tag_relation')->addRelations($tag, $productIds);
             }
         }
+
+        Mage::getModel('stedgerconsumerintegration/api')->request('POST', 'connected_products/' . $apiData['id'] . '/status', ['status' => 'connected']);
     }
 
     public function updateMagentoProduct($apiData)

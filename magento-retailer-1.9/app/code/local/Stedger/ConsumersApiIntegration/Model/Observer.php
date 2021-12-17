@@ -24,7 +24,7 @@ class Stedger_ConsumersApiIntegration_Model_Observer
         $stedgerQty = $product->getStedgerQty();
 
         if ($qtyOrdered > ($stockQty + $stedgerQty)) {
-            throw new \Exception(Mage::helper('stedgerconsumerintegration')->__('Product #%s: The requested qty is not available', $product->getName()));
+            throw new Exception(Mage::helper('stedgerconsumerintegration')->__('Product #%s: The requested qty is not available', $product->getName()));
         }
     }
 
@@ -47,7 +47,7 @@ class Stedger_ConsumersApiIntegration_Model_Observer
             $stedgerQty = $product->getStedgerQty();
 
             if ($qtyOrdered > ($stockQty + $stedgerQty)) {
-                throw new \Exception(Mage::helper('stedgerconsumerintegration')->__('Product #%s: The requested qty is not available', $product->getName()));
+                throw new Exception(Mage::helper('stedgerconsumerintegration')->__('Product #%s: The requested qty is not available', $product->getName()));
             }
         }
     }
@@ -109,9 +109,11 @@ class Stedger_ConsumersApiIntegration_Model_Observer
             $qtyOrdered = $item->getQtyOrdered();
             $stockQty = $stockItem->getQty();
 
+            $qty = $qtyOrdered;
+
             if ($stockQty >= $qtyOrdered) {
                 continue;
-            } else {
+            } elseif ($stockQty > 0) {
                 $qty = $qtyOrdered - $stockQty;
             }
 

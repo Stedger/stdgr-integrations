@@ -4,12 +4,12 @@
 $installer = $this;
 $installer->startSetup();
 
-$bestsellersTables = [
+$tables = [
     $installer->getTable('sales_flat_order'),
     $installer->getTable('sales_flat_order_item')
 ];
 
-foreach ($bestsellersTables as $table) {
+foreach ($tables as $table) {
     $installer->getConnection()->addColumn(
         $table,
         'stedger_integration_id',
