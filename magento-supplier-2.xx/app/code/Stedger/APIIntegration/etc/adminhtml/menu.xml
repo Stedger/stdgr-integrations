@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+    <menu>
+        <add id="Stedger_APIIntegration::menu"
+             title="Stedger" module="Stedger_APIIntegration"
+             sortOrder="50"
+             resource="Magento_Backend::content"
+        />
+        <add id="Stedger_APIIntegration::menu_item"
+             title="Integration" module="Stedger_APIIntegration"
+             sortOrder="10" parent="Stedger_APIIntegration::menu"
+             action="adminstedgerintegration/integration/index"
+             resource="Stedger_APIIntegration::menu_item"
+        />
+    </menu>
+</config>
