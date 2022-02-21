@@ -1,6 +1,6 @@
 <?php
 
-namespace Stedger\APIIntegration\Model;
+namespace Stedger\ConsumersApiIntegration\Model;
 
 class Api
 {
@@ -9,19 +9,15 @@ class Api
     protected $helper;
 
     public function __construct(
-        \Stedger\APIIntegration\Helper\Data $helper
+        \Stedger\ConsumersApiIntegration\Helper\Data $helper
     )
     {
         $this->helper = $helper;
     }
 
-    public function request($type = 'GET', $endpoint, $params = [], $secretKey = null, $storeId = null)
+    public function request($type = 'GET', $endpoint, $params = [])
     {
-        if (!$secretKey) {
-            $secretKey = $this->helper->getConfig('stedgerintegration/settings/secret_key');
-        } elseif ($storeId) {
-            $secretKey = $this->helper->getConfig('stedgerintegration/settings/secret_key', $storeId);
-        }
+        $secretKey = $this->helper->getConfig('stedgerconsumerintegration/settings/secret_key');
 
         if ($secretKey) {
             $ch = curl_init($this->_url . $endpoint);

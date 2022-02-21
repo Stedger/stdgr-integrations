@@ -9,16 +9,18 @@ trait ProductTrait
     private $stockState;
     private $api;
     private $helper;
+    private $emulation;
     private $resource;
     private $connection;
 
     public function __construct(
-        \Magento\Store\Model\StoreManagerInterface $storeManager,
-        \Magento\Catalog\Model\ProductFactory $productFactory,
+        \Magento\Store\Model\StoreManagerInterface        $storeManager,
+        \Magento\Catalog\Model\ProductFactory             $productFactory,
         \Magento\CatalogInventory\Api\StockStateInterface $stockState,
-        \Stedger\APIIntegration\Model\Api $api,
-        \Stedger\APIIntegration\Helper\Data $helper,
-        \Magento\Framework\App\ResourceConnection $resource
+        \Stedger\APIIntegration\Model\Api                 $api,
+        \Stedger\APIIntegration\Helper\Data               $helper,
+        \Magento\Store\Model\App\Emulation                $emulation,
+        \Magento\Framework\App\ResourceConnection         $resource
     )
     {
         $this->storeManager = $storeManager;
@@ -26,6 +28,7 @@ trait ProductTrait
         $this->stockState = $stockState;
         $this->api = $api;
         $this->helper = $helper;
+        $this->emulation = $emulation;
         $this->resource = $resource;
         $this->connection = $resource->getConnection();
     }
@@ -60,16 +63,43 @@ trait ProductTrait
         $storeId = isset($productStores[0]) ? $productStores[0] : 1;
         $store = $this->storeManager->getStore($storeId);
 
+        $this->emulation->startEnvironmentEmulation($storeId, \Magento\Framework\App\Area::AREA_FRONTEND, true);
+
+        $customerGroup = $this->helper->getConfig('stedgerintegration/product_settings/customer_group', $storeId);
+
+        if ($customerGroup) {
+            $product->setCustomerGroupId($customerGroup);
+        }
+
         $localeCode = 'dk';
         $countryCode = 'DK';
 
         $apiProduct = [
-            "foreignId" => $product->getId() .''. 1000,
+            "foreignId" => $product->getId() . '' . 1000,
             "title" => $product->getName(),
             "vendor" => $product->getAttributeText('manufacturer') ? $product->getAttributeText('manufacturer') : '',
             "description" => $product->getDescription() ?? $product->getName(),
             "locale" => $localeCode,
         ];
+
+        $allowCategories = $this->helper->getConfig('stedgerintegration/product_settings/categories', $storeId);
+
+        if ($allowCategories) {
+            $allowCategories = explode(',', str_replace(' ', '', $allowCategories));
+            $categories = $product->getCategoryIds();
+
+            $in = false;
+            foreach ($categories as $category) {
+                if (in_array($category, $allowCategories)) {
+                    $in = true;
+                    break;
+                }
+            }
+
+            if ($in === false) return false;
+        }
+
+        $allowDropshipCategories = $this->helper->getConfig('stedgerintegration/product_settings/allow_dropship_categories', $storeId);
 
         if (count($productStores) > 1) {
             foreach ($productStores as $productStoreId) {
@@ -95,7 +125,7 @@ trait ProductTrait
             $childProduct = $this->productFactory->create()->load($childProduct->getId());
             $stockQty = $this->stockState->getStockQty($childProduct->getId(), $childProduct->getStore()->getWebsiteId());
 
-            $apiProduct["variants"][] = [
+            $variant = [
                 "foreignId" => $childProduct->getId(),
                 "identifiers" => [
                     "sku" => $childProduct->getSku(),
@@ -107,11 +137,32 @@ trait ProductTrait
                     [
                         "code" => $countryCode,
                         "currency" => strtolower($store->getCurrentCurrencyCode()),
-                        "tradePrice" => $childProduct->getFinalPrice() * 100,
+                        "tradePrice" => $product->getPriceInfo()->getPrice('final_price')->getAmount()->getValue() * 100,
                         "recommendedRetailPrice" => $childProduct->getMsrp() * 100,
                     ]
                 ]
             ];
+
+            if ($allowDropshipCategories) {
+                $allowDropshipCategories = explode(',', str_replace(' ', '', $allowDropshipCategories));
+                $categories = $product->getCategoryIds();
+
+                $in = false;
+                foreach ($categories as $category) {
+                    if (in_array($category, $allowDropshipCategories)) {
+                        $in = true;
+                        break;
+                    }
+                }
+
+                if ($in === true) {
+                    $variant['acceptsDropshipOrders'] = true;
+                }
+            } else {
+                $variant['acceptsDropshipOrders'] = true;
+            }
+
+            $apiProduct["variants"][] = $variant;
 
             if ($simple === false) {
                 $productAttributeOptions = $product->getTypeInstance(true)->getConfigurableAttributesAsArray($product);
@@ -128,6 +179,8 @@ trait ProductTrait
             }
         }
 
-        $this->api->request('POST', 'connected_products/batch_upsert', [$apiProduct]);
+        $this->api->request('POST', 'connected_products/batch_upsert', [$apiProduct], null, $storeId);
+
+        $this->emulation->stopEnvironmentEmulation();
     }
 }

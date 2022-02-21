@@ -11,8 +11,8 @@ class Stedger_APIIntegration_Model_Integration
 
         $shippingAddress = $billingAddress = $this->_getAddress($apiData);
 
-        $customerId = isset($apiData['parentOrder']['company']['recipientRelation']['appSettings'][0]['accountNumber']) ?
-            $apiData['parentOrder']['company']['recipientRelation']['appSettings'][0]['accountNumber'] : 0;
+        $customerId = isset($apiData['parentOrder']['company']['recipientRelation']['appSettings']['accountNumber']) ?
+            $apiData['parentOrder']['company']['recipientRelation']['appSettings']['accountNumber'] : 0;
 
         $customer = Mage::getModel('customer/customer')->setWebsiteId($website->getId())->load($customerId);
 

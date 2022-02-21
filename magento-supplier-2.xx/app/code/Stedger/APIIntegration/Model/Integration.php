@@ -4,6 +4,7 @@ namespace Stedger\APIIntegration\Model;
 
 class Integration
 {
+    private $helper;
     private $storeManager;
     private $product;
     private $formkey;
@@ -15,6 +16,7 @@ class Integration
     private $country;
 
     public function __construct(
+        \Stedger\APIIntegration\Helper\Data               $helper,
         \Magento\Store\Model\StoreManagerInterface        $storeManager,
         \Magento\Catalog\Model\Product                    $product,
         \Magento\Framework\Data\Form\FormKey              $formkey,
@@ -26,6 +28,7 @@ class Integration
         \Magento\Directory\Model\Country                  $country
     )
     {
+        $this->helper = $helper;
         $this->storeManager = $storeManager;
         $this->product = $product;
         $this->formkey = $formkey;
@@ -86,6 +89,10 @@ class Integration
         $order = $this->quoteManagement->submit($quote);
 
         $order->setEmailSent(0);
+
+        if ($this->helper->getConfig('stedgerintegration/order_settings/custom_order_id', $order->getStoreId())) {
+            $order->setIncrementId('s_' . $customer->getId() . '_' . $order->getIncrementId())->save();
+        }
 
         return $order->getRealOrderId();
     }

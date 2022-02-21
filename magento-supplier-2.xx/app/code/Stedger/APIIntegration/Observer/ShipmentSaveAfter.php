@@ -13,8 +13,8 @@ class ShipmentSaveAfter implements ObserverInterface
 
     public function __construct(
         \Magento\Sales\Model\Order\Shipment $shipment,
-        \Stedger\APIIntegration\Model\Api $api,
-        \Psr\Log\LoggerInterface $logger
+        \Stedger\APIIntegration\Model\Api   $api,
+        \Psr\Log\LoggerInterface            $logger
     )
     {
         $this->shipment = $shipment;
@@ -52,7 +52,7 @@ class ShipmentSaveAfter implements ObserverInterface
                     ];
                 }
 
-                $this->api->request('POST', "orders/$orderStedgerIntegrationId/fulfillments", $stedgerShipment);
+                $this->api->request('POST', "orders/$orderStedgerIntegrationId/fulfillments", $stedgerShipment, null, $order->getStoreId());
             }
         } catch (\Exception $e) {
             $this->logger->critical('Error "shipment save after": ' . $e->getMessage(), ['exception' => $e]);

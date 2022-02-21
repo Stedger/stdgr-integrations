@@ -10,14 +10,36 @@
             <label>Integration</label>
             <tab>stedger</tab>
             <resource>Stedger_APIIntegration::config</resource>
-            <group id="settings" translate="label" type="text" sortOrder="1" showInDefault="0" showInWebsite="0" showInStore="1">
+            <group id="settings" translate="label" type="text" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="1">
                 <label>API</label>
-                <field id="public_key" translate="label comment" type="text" sortOrder="10" showInDefault="0" showInWebsite="0" showInStore="1">
+                <field id="public_key" translate="label comment" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Public key:</label>
                 </field>
-                <field id="secret_key" translate="label comment" type="text" sortOrder="20" showInDefault="0" showInWebsite="0" showInStore="1">
+                <field id="secret_key" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Secret key:</label>
                     <backend_model>Stedger\APIIntegration\Model\System\Config\Backend\Keys</backend_model>
+                </field>
+            </group>
+            <group id="product_settings" translate="label" type="text" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Products</label>
+                <field id="customer_group" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Customer Group</label>
+                    <source_model>Stedger\APIIntegration\Model\Customer\Source\Group</source_model>
+                </field>
+                <field id="categories" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Categories</label>
+                    <comment>Comma-separated.</comment>
+                </field>
+                <field id="allow_dropship_categories" translate="label comment" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Allow Dropship Categories</label>
+                    <comment>Comma-separated.</comment>
+                </field>
+            </group>
+            <group id="order_settings" translate="label" type="text" sortOrder="1" showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Orders</label>
+                <field id="custom_order_id" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Stedger Custom Order ID format</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
             </group>
         </section>

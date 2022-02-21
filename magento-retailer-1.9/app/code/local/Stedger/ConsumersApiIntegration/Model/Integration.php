@@ -45,7 +45,7 @@ class Stedger_ConsumersApiIntegration_Model_Integration
             $product->setTypeId('simple');
             $product->setAttributeSetId($attributeSetId);
             $product->setWebsiteIds([$website->getId()]);
-            $product->setName($name . ' (' . $itemData['identifiers']['sku'] . ')');
+            $product->setName($name);
             $product->setDescription($description);
             $product->setShortDescription($description);
             $product->setCost($itemData['zonePrice']['costPrice'] / 100);
@@ -58,7 +58,7 @@ class Stedger_ConsumersApiIntegration_Model_Integration
             $product->setStatus(Mage_Catalog_Model_Product_Status::STATUS_ENABLED);
             $product->setStoreId(Mage::app()->getStore()->getStoreId());
 
-            if (array_key_exists($i, $images)) {
+            /*if (array_key_exists($i, $images)) {
 
                 $urlToImage = $images[$i]['src'];
                 $imageDir = Mage::getBaseDir('media') . DS . 'tmp' . DS . 'stedger' . DS . 'images' . DS;
@@ -78,7 +78,7 @@ class Stedger_ConsumersApiIntegration_Model_Integration
 
                 $product->setMediaGallery(['images' => [], 'values' => []]);
                 $product->addImageToMediaGallery($localImage, ['image', 'thumbnail', 'small_image'], false, false);
-            }
+            }*/
 
             $product->setStockData([
                 'is_in_stock' => $itemData['dropshipStatus']['onStock'] ? 1 : 0,
@@ -96,6 +96,49 @@ class Stedger_ConsumersApiIntegration_Model_Integration
                 Mage::helper('stedgerconsumerintegration')->log('Error "product create": ' . $e->getMessage());
             }
 
+            if ($images) {
+
+                $storeID = Mage_Core_Model_App::ADMIN_STORE_ID;
+
+                Mage::app()->setCurrentStore($storeID);
+
+                $product = Mage::getModel('catalog/product')->load($product->getId());
+
+                $product->setMediaGallery(['images' => [], 'values' => []]);
+
+                foreach ($images as $i => $image) {
+
+                    $urlToImage = $image['src'];
+                    $imageDir = Mage::getBaseDir('media') . DS . 'tmp' . DS . 'stedger' . DS . 'images' . DS;
+
+                    if (!file_exists($imageDir)) {
+                        mkdir($imageDir, 0777, true);
+                    }
+
+                    $filename = basename($urlToImage);
+                    $localImage = $imageDir . $filename;
+
+                    try {
+                        file_put_contents($localImage, file_get_contents($urlToImage));
+                    } catch (Exception $e) {
+                        Mage::helper('stedgerconsumerintegration')->log('Error "product create image": ' . $e->getMessage());
+                    }
+
+                    $imageRole = [];
+                    if ($i == 0) {
+                        $imageRole = ['image', 'thumbnail', 'small_image'];
+                    }
+
+                    $product->addImageToMediaGallery($localImage, $imageRole, false, false);
+                }
+
+                try {
+                    $product->save();
+                } catch (Exception $e) {
+                    Mage::helper('stedgerconsumerintegration')->log('Error "product add images": ' . $e->getMessage());
+                }
+            }
+
             $productIds[] = $product->getId();
         }
 
@@ -108,6 +151,8 @@ class Stedger_ConsumersApiIntegration_Model_Integration
                 if (!$tag->getId()) {
                     $tag = (new Mage_Tag_Model_Tag())->setName($tagName)->save();
                 }
+
+                $tag->setStore(Mage::app()->getStore()->getStoreId());
 
                 Mage::getModel('tag/tag_relation')->addRelations($tag, $productIds);
             }
