@@ -17,17 +17,17 @@ class Integration
     private $orderFactory;
 
     public function __construct(
-        \Magento\Store\Model\StoreManagerInterface                $storeManager,
-        \Magento\Catalog\Model\ProductFactory                     $productFactory,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Catalog\Model\ProductFactory $productFactory,
         \Magento\CatalogInventory\Model\Stock\StockItemRepository $stockItemRepository,
-        \Magento\Catalog\Model\ResourceModel\Product\Action       $productAction,
-        \Magento\Framework\App\Filesystem\DirectoryList           $directoryList,
-        \Psr\Log\LoggerInterface                                  $logger,
-        \Stedger\ConsumersApiIntegration\Model\Api                $api,
-        \Magento\Sales\Model\Convert\Order                        $convertOrder,
-        \Magento\Shipping\Model\ShipmentNotifier                  $shipmentNotifier,
-        \Magento\Sales\Model\Order\Shipment\TrackFactory          $trackFactory,
-        \Magento\Sales\Model\OrderFactory                         $orderFactory
+        \Magento\Catalog\Model\ResourceModel\Product\Action $productAction,
+        \Magento\Framework\App\Filesystem\DirectoryList $directoryList,
+        \Psr\Log\LoggerInterface $logger,
+        \Stedger\ConsumersApiIntegration\Model\Api $api,
+        \Magento\Sales\Model\Convert\Order $convertOrder,
+        \Magento\Shipping\Model\ShipmentNotifier $shipmentNotifier,
+        \Magento\Sales\Model\Order\Shipment\TrackFactory $trackFactory,
+        \Magento\Sales\Model\OrderFactory $orderFactory
     )
     {
         $this->storeManager = $storeManager;
@@ -103,6 +103,8 @@ class Integration
                 'use_config_backorders' => 0,
                 'backorders' => 1
             ]);
+
+            $product->setWeight($itemData['weight']['net'] / 453.59237);
 
             $product->setStedgerQty($itemData['dropshipStatus']['inventory']);
             $product->setCreatedAt(strtotime('now'));

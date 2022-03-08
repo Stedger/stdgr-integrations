@@ -116,6 +116,9 @@ class Stedger_APIIntegration_Model_Observer
                         "tradePrice" => $childProduct->getFinalPrice() * 100,
                         "recommendedRetailPrice" => $childProduct->getMsrp() * 100,
                     ]
+                ],
+                "weight" => [
+                    "net" => $childProduct->getWeight() * 453.59237,
                 ]
             ];
 
@@ -134,7 +137,11 @@ class Stedger_APIIntegration_Model_Observer
             }
         }
 
-        Mage::getModel('stedgerintegration/api')->request('POST', 'connected_products/batch_upsert', [$apiProduct]);
+        Mage::getModel('stedgerintegration/api')->request('POST', 'connected_products/batch_upsert',
+            [
+                'options' => ['ignoreUnknown' => false],
+                'products' => [$apiProduct],
+            ]);
     }
 
     public function salesShipmentSaveAfter(Varien_Event_Observer $observer)

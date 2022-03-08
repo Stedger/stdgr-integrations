@@ -14,13 +14,13 @@ trait ProductTrait
     private $connection;
 
     public function __construct(
-        \Magento\Store\Model\StoreManagerInterface        $storeManager,
-        \Magento\Catalog\Model\ProductFactory             $productFactory,
+        \Magento\Store\Model\StoreManagerInterface $storeManager,
+        \Magento\Catalog\Model\ProductFactory $productFactory,
         \Magento\CatalogInventory\Api\StockStateInterface $stockState,
-        \Stedger\APIIntegration\Model\Api                 $api,
-        \Stedger\APIIntegration\Helper\Data               $helper,
-        \Magento\Store\Model\App\Emulation                $emulation,
-        \Magento\Framework\App\ResourceConnection         $resource
+        \Stedger\APIIntegration\Model\Api $api,
+        \Stedger\APIIntegration\Helper\Data $helper,
+        \Magento\Store\Model\App\Emulation $emulation,
+        \Magento\Framework\App\ResourceConnection $resource
     )
     {
         $this->storeManager = $storeManager;
@@ -140,6 +140,9 @@ trait ProductTrait
                         "tradePrice" => $product->getPriceInfo()->getPrice('final_price')->getAmount()->getValue() * 100,
                         "recommendedRetailPrice" => $childProduct->getMsrp() * 100,
                     ]
+                ],
+                "weight" => [
+                    "net" => $childProduct->getWeight() * 453.59237,
                 ]
             ];
 
@@ -179,7 +182,10 @@ trait ProductTrait
             }
         }
 
-        $this->api->request('POST', 'connected_products/batch_upsert', [$apiProduct], null, $storeId);
+        $this->api->request('POST', 'connected_products/batch_upsert', [
+            'options' => ['ignoreUnknown' => false],
+            'products' => [$apiProduct],
+        ], null, $storeId);
 
         $this->emulation->stopEnvironmentEmulation();
     }
