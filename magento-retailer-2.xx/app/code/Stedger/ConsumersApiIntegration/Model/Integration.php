@@ -169,7 +169,7 @@ class Integration
     {
         $product = $this->productFactory->create()->loadByAttribute('stedger_integration_id', $apiData['id']);
 
-        if ($product->getId()) {
+        if ($product && $product->getId()) {
 
             try {
                 $stockItem = $this->stockItemRepository->get($product->getId());
