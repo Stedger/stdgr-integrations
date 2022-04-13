@@ -4,9 +4,11 @@ class Stedger_ConsumersApiIntegration_Model_Api
 {
     private $_url = 'https://api.stedger.com/v1/';
 
-    public function request($type = 'GET', $endpoint, $params = [])
+    public function request($type = 'GET', $endpoint, $params = [], $secretKey = null)
     {
-        $secretKey = Mage::getStoreConfig('stedgerconsumerintegration/settings/secret_key');
+        if ($secretKey === null) {
+            $secretKey = Mage::getStoreConfig('stedgerconsumerintegration/settings/secret_key');
+        }
 
         if ($secretKey) {
             $ch = curl_init($this->_url . $endpoint);
@@ -25,8 +27,6 @@ class Stedger_ConsumersApiIntegration_Model_Api
             }
             $result = curl_exec($ch);
 
-//            dd(json_encode($params));
-//d(json_decode($result, true));
             return json_decode($result, true);
         }
         return false;

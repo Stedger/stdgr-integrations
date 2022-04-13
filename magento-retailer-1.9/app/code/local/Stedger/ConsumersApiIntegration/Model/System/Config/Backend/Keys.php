@@ -6,10 +6,12 @@ class Stedger_ConsumersApiIntegration_Model_System_Config_Backend_Keys extends M
     {
         if ($this->getValue()) {
 
+            $secretKey = $this->getValue();
+
             $url = Mage::getUrl('stedgerconsumerintegration/api/product');
             $events = ["connected_product.added"];
 
-            $webhooks = Mage::getModel('stedgerconsumerintegration/api')->request('get', 'webhooks');
+            $webhooks = Mage::getModel('stedgerconsumerintegration/api')->request('get', 'webhooks', [], $secretKey);
 
             $addWebhook = true;
             if ($webhooks && $webhooks["totalCount"]) {
@@ -26,19 +28,19 @@ class Stedger_ConsumersApiIntegration_Model_System_Config_Backend_Keys extends M
                     'description' => 'Products',
                     'enabledEvents' => $events,
                     'url' => $url,
-                ]);
+                ], $secretKey);
 
                 Mage::getModel('stedgerconsumerintegration/api')->request('post', 'webhooks', [
                     'description' => 'Update Product',
                     'enabledEvents' => ["connected_product.variant.updated"],
                     'url' => Mage::getUrl('stedgerconsumerintegration/api/updateproduct'),
-                ]);
+                ], $secretKey);
 
                 Mage::getModel('stedgerconsumerintegration/api')->request('post', 'webhooks', [
                     'description' => 'Fulfillment Created',
                     'enabledEvents' => ["fulfillment.created"],
                     'url' => Mage::getUrl('stedgerconsumerintegration/api/shipment'),
-                ]);
+                ], $secretKey);
             }
         }
     }
