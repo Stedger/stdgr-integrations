@@ -90,13 +90,9 @@ class Stedger_ConsumersApiIntegration_Model_Integration
             $product->setWeight($itemData['weight']['net'] / 453.59237);
 
             $product->setStedgerQty($itemData['dropshipStatus']['inventory']);
-            $product->setCreatedAt(strtotime('now'));
+            $product->setCreatedAt(date('Y-m-d H:i:s'));
 
-            try {
-                $product->save();
-            } catch (Exception $e) {
-                Mage::helper('stedgerconsumerintegration')->log('Error "product create": ' . $e->getMessage());
-            }
+            $product->save();
 
             if ($images) {
 
