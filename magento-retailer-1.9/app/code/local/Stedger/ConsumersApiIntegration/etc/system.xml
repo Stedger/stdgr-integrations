@@ -53,7 +53,7 @@
 
                     <fields>
                         <status translate="label">
-                            <label>Pick if product is active / inactive by default</label>
+                            <label>New Product Status</label>
                             <frontend_type>select</frontend_type>
                             <source_model>stedgerconsumerintegration/system_config_source_product_status</source_model>
                             <sort_order>10</sort_order>
