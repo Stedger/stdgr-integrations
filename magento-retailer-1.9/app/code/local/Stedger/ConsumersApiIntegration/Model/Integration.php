@@ -2,6 +2,41 @@
 
 class Stedger_ConsumersApiIntegration_Model_Integration
 {
+    private function __getConfigValue($key)
+    {
+        return Mage::getStoreConfig("stedgerconsumerintegration/products/$key");
+    }
+
+    private function __getAttributeOptionId($attributeCode, $argValue)
+    {
+        $attribute = Mage::getModel('eav/config')
+            ->getAttribute(Mage_Catalog_Model_Product::ENTITY, $attributeCode);
+
+        if ($attribute->usesSource()) {
+            $id = $attribute->getSource()->getOptionId($argValue);
+            if ($id) {
+                return $id;
+            }
+        }
+
+        $value = array(
+            'value' => array(
+                'option' => array(
+                    ucfirst($argValue),
+                    ucfirst($argValue)
+                )
+            )
+        );
+
+        $attribute->setData('option', $value);
+        $attribute->save();
+
+        $attribute = Mage::getModel('eav/config')->getAttribute(Mage_Catalog_Model_Product::ENTITY, $attributeCode);
+        if ($attribute->usesSource()) {
+            return $attribute->getSource()->getOptionId($argValue);
+        }
+    }
+
     public function createMagentoProduct($apiData)
     {
         $name = $apiData['title'];
@@ -55,30 +90,30 @@ class Stedger_ConsumersApiIntegration_Model_Integration
             $product->setStedgerIntegrationId($itemData['id']);
             $product->setCreatedFromStedger(1);
             $product->setVisibility(Mage_Catalog_Model_Product_Visibility::VISIBILITY_BOTH);
-            $product->setStatus(Mage_Catalog_Model_Product_Status::STATUS_ENABLED);
+
+            $status = $this->__getConfigValue('status');
+            if (!$status) {
+                $status = Mage_Catalog_Model_Product_Status::STATUS_ENABLED;
+            }
+            $product->setStatus($status);
+
+            $taxClass = $this->__getConfigValue('tax_class');
+            if ($taxClass) {
+                $product->setTaxClassId($taxClass);
+            }
+
+            $manufacturerCode = $this->__getConfigValue('manufacturer_code');
+            if ($manufacturerCode && array_key_exists('vendor', $apiData)) {
+                $manufacturerCodeOptionId = $this->__getAttributeOptionId($manufacturerCode, $apiData['vendor']);
+                $product->setData($manufacturerCode, $manufacturerCodeOptionId);
+            }
+
+            $eanCode = $this->__getConfigValue('ean_code');
+            if ($eanCode && array_key_exists('ean', $apiData)) {
+                $product->setData($eanCode, $apiData['ean']);
+            }
+
             $product->setStoreId(Mage::app()->getStore()->getStoreId());
-
-            /*if (array_key_exists($i, $images)) {
-
-                $urlToImage = $images[$i]['src'];
-                $imageDir = Mage::getBaseDir('media') . DS . 'tmp' . DS . 'stedger' . DS . 'images' . DS;
-
-                if (!file_exists($imageDir)) {
-                    mkdir($imageDir, 0777, true);
-                }
-
-                $filename = basename($urlToImage);
-                $localImage = $imageDir . $filename;
-
-                try {
-                    file_put_contents($localImage, file_get_contents($urlToImage));
-                } catch (Exception $e) {
-                    Mage::helper('stedgerconsumerintegration')->log('Error "product create image": ' . $e->getMessage());
-                }
-
-                $product->setMediaGallery(['images' => [], 'values' => []]);
-                $product->addImageToMediaGallery($localImage, ['image', 'thumbnail', 'small_image'], false, false);
-            }*/
 
             $product->setStockData([
                 'is_in_stock' => $itemData['dropshipStatus']['onStock'] ? 1 : 0,
@@ -140,7 +175,7 @@ class Stedger_ConsumersApiIntegration_Model_Integration
             $productIds[] = $product->getId();
         }
 
-        $addTags = Mage::getStoreConfig('stedgerconsumerintegration/products/add_tags');
+        $addTags = $this->__getConfigValue('add_tags');
 
         if ($addTags && $apiData['tags']) {
             foreach ($apiData['tags'] as $tagName) {
