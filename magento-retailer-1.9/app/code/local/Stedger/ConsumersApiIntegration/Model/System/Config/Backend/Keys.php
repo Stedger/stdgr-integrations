@@ -4,7 +4,20 @@ class Stedger_ConsumersApiIntegration_Model_System_Config_Backend_Keys extends M
 {
     private function _getUrl($path)
     {
-        return Mage::getBaseUrl(Mage_Core_Model_Store::URL_TYPE_WEB) . $path;
+        $storeCode = $this->getStoreCode();
+        $websiteCode = $this->getWebsiteCode();
+
+        $baseUrl = Mage::getBaseUrl(Mage_Core_Model_Store::URL_TYPE_WEB);
+
+        if ($storeCode) {
+            $store = Mage::app()->getStore($storeCode);
+            $baseUrl = $store->getBaseUrl(Mage_Core_Model_Store::URL_TYPE_WEB);
+        } elseif ($websiteCode) {
+            $store = Mage::app()->getWebsite($websiteCode)->getDefaultStore();
+            $baseUrl = $store->getBaseUrl(Mage_Core_Model_Store::URL_TYPE_WEB);
+        }
+
+        return $baseUrl . $path;
     }
 
     protected function _afterSave()

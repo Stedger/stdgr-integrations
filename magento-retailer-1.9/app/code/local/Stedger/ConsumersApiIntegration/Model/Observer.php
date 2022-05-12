@@ -101,7 +101,7 @@ class Stedger_ConsumersApiIntegration_Model_Observer
             $product = $item->getProduct();
 
             if (!$product->getStedgerIntegrationId()) {
-                return $this;
+                continue;
             }
 
             $stockItem = Mage::getModel('cataloginventory/stock_item')->loadByProduct($product->getId());
@@ -124,13 +124,18 @@ class Stedger_ConsumersApiIntegration_Model_Observer
                     "sku" => $item->getSku()
                 ],
                 "quantity" => $qty,
-                "price" => $item->getPrice() * 100,
-                "priceWithTax" => ($item->getPrice() + $item->getTaxAmount()) * 100,
+                "price" => intval($item->getPrice() * 100),
+                "priceWithTax" => intval(($item->getPrice() + $item->getTaxAmount()) * 100),
                 "productVariantId" => $product->getStedgerIntegrationId(),
             ];
         }
 
+        if (array_key_exists('lineItems', $apiOrder) === false) {
+            return $this;
+        }
+
         $stedgerOrder = Mage::getModel('stedgerconsumerintegration/api')->request('POST', 'orders', $apiOrder);
+
 
         if ($stedgerOrder && array_key_exists('id', $stedgerOrder)) {
             $order->setStedgerIntegrationId($stedgerOrder['id'])->save();
