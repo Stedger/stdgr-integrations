@@ -9,17 +9,17 @@ class CheckoutCartAdd implements ObserverInterface
 {
     private $request;
     private $productFactory;
-    private $stockItemRepository;
+    private $stockRegistry;
 
     public function __construct(
-        \Magento\Framework\App\RequestInterface                   $request,
-        \Magento\Catalog\Model\ProductFactory                     $productFactory,
-        \Magento\CatalogInventory\Model\Stock\StockItemRepository $stockItemRepository
+        \Magento\Framework\App\RequestInterface              $request,
+        \Magento\Catalog\Model\ProductFactory                $productFactory,
+        \Magento\CatalogInventory\Api\StockRegistryInterface $stockRegistry
     )
     {
         $this->request = $request;
         $this->productFactory = $productFactory;
-        $this->stockItemRepository = $stockItemRepository;
+        $this->stockRegistry = $stockRegistry;
     }
 
     public function execute(Observer $observer)
@@ -37,7 +37,7 @@ class CheckoutCartAdd implements ObserverInterface
             return $this;
         }
 
-        $stockItem = $this->stockItemRepository->get($product->getId());
+        $stockItem = $this->stockRegistry->getStockItem($product->getId());
 
         $qtyOrdered = $qty ? $qty : 1;
         $stockQty = $stockItem->getQty();

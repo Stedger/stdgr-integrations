@@ -7,13 +7,13 @@ use Magento\Framework\Event\Observer;
 
 class SalesOrderPlaceBefore implements ObserverInterface
 {
-    private $stockItemRepository;
+    private $stockRegistry;
 
     public function __construct(
-        \Magento\CatalogInventory\Model\Stock\StockItemRepository $stockItemRepository
+        \Magento\CatalogInventory\Api\StockRegistryInterface $stockRegistry
     )
     {
-        $this->stockItemRepository = $stockItemRepository;
+        $this->stockRegistry = $stockRegistry;
     }
 
     public function execute(Observer $observer)
@@ -28,7 +28,7 @@ class SalesOrderPlaceBefore implements ObserverInterface
                 return $this;
             }
 
-            $stockItem = $this->stockItemRepository->get($product->getId());
+            $stockItem = $this->stockRegistry->getStockItem($product->getId());
 
             $qtyOrdered = $item->getQtyOrdered();
             $stockQty = $stockItem->getQty();

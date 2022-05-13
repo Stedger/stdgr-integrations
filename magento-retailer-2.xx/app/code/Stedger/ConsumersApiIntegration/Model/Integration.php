@@ -6,7 +6,7 @@ class Integration
 {
     private $storeManager;
     private $productFactory;
-    private $stockItemRepository;
+    private $stockRegistry;
     private $productAction;
     private $directoryList;
     private $logger;
@@ -15,24 +15,28 @@ class Integration
     private $shipmentNotifier;
     private $trackFactory;
     private $orderFactory;
+    private $mediaGalleryProcessor;
+    private $productFlatIndexerProcessor;
 
     public function __construct(
-        \Magento\Store\Model\StoreManagerInterface $storeManager,
-        \Magento\Catalog\Model\ProductFactory $productFactory,
-        \Magento\CatalogInventory\Model\Stock\StockItemRepository $stockItemRepository,
-        \Magento\Catalog\Model\ResourceModel\Product\Action $productAction,
-        \Magento\Framework\App\Filesystem\DirectoryList $directoryList,
-        \Psr\Log\LoggerInterface $logger,
-        \Stedger\ConsumersApiIntegration\Model\Api $api,
-        \Magento\Sales\Model\Convert\Order $convertOrder,
-        \Magento\Shipping\Model\ShipmentNotifier $shipmentNotifier,
-        \Magento\Sales\Model\Order\Shipment\TrackFactory $trackFactory,
-        \Magento\Sales\Model\OrderFactory $orderFactory
+        \Magento\Store\Model\StoreManagerInterface            $storeManager,
+        \Magento\Catalog\Model\ProductFactory                 $productFactory,
+        \Magento\CatalogInventory\Api\StockRegistryInterface  $stockRegistry,
+        \Magento\Catalog\Model\ResourceModel\Product\Action   $productAction,
+        \Magento\Framework\App\Filesystem\DirectoryList       $directoryList,
+        \Psr\Log\LoggerInterface                              $logger,
+        \Stedger\ConsumersApiIntegration\Model\Api            $api,
+        \Magento\Sales\Model\Convert\Order                    $convertOrder,
+        \Magento\Shipping\Model\ShipmentNotifier              $shipmentNotifier,
+        \Magento\Sales\Model\Order\Shipment\TrackFactory      $trackFactory,
+        \Magento\Sales\Model\OrderFactory                     $orderFactory,
+        \Magento\Catalog\Model\Product\Gallery\Processor      $mediaGalleryProcessor,
+        \Magento\Catalog\Model\Indexer\Product\Flat\Processor $productFlatIndexerProcessor
     )
     {
         $this->storeManager = $storeManager;
         $this->productFactory = $productFactory;
-        $this->stockItemRepository = $stockItemRepository;
+        $this->stockRegistry = $stockRegistry;
         $this->productAction = $productAction;
         $this->directoryList = $directoryList;
         $this->logger = $logger;
@@ -41,6 +45,8 @@ class Integration
         $this->shipmentNotifier = $shipmentNotifier;
         $this->trackFactory = $trackFactory;
         $this->orderFactory = $orderFactory;
+        $this->mediaGalleryProcessor = $mediaGalleryProcessor;
+        $this->productFlatIndexerProcessor = $productFlatIndexerProcessor;
     }
 
     public function createMagentoProduct($apiData)
@@ -60,9 +66,10 @@ class Integration
             $product->load($product->getIdBySku($itemData['identifiers']['sku']));
 
             if ($product && $product->getId()) {
+
                 $productIds[] = $product->getId();
 
-                $stockItem = $this->stockItemRepository->get($product->getId());
+                $stockItem = $this->stockRegistry->getStockItem($product->getId());
 
                 $stockItem->setData('use_config_backorders', '0');
                 $stockItem->setData('backorders', '1');
@@ -71,7 +78,7 @@ class Integration
 
                 $this->productAction->updateAttributes(
                     [$product->getId()],
-                    ['stedger_qty' => $itemData['dropshipStatus']['inventory']],
+                    ['stedger_qty' => $itemData['dropshipStatus'] && $itemData['dropshipStatus']['inventory'] ? $itemData['dropshipStatus']['inventory'] : 0],
                     $this->storeManager->getStore()->getId()
                 );
 
@@ -97,69 +104,80 @@ class Integration
             $product->setStatus(\Magento\Catalog\Model\Product\Attribute\Source\Status::STATUS_ENABLED);
             $product->setStoreId($this->storeManager->getStore()->getId());
 
-            $product->setStockData([
-                'is_in_stock' => $itemData['dropshipStatus']['onStock'] ? 1 : 0,
+            $stockData = [
+                'is_in_stock' => $itemData['dropshipStatus'] && $itemData['dropshipStatus']['onStock'] ? 1 : 0,
                 'qty' => 0,
+                'manage_stock' => 1,
                 'use_config_backorders' => 0,
                 'backorders' => 1
-            ]);
+            ];
+
+            $product->setStockData($stockData);
 
             $product->setWeight($itemData['weight']['net'] / 453.59237);
 
-            $product->setStedgerQty($itemData['dropshipStatus']['inventory']);
-            $product->setCreatedAt(strtotime('now'));
+            $product->setStedgerQty($itemData['dropshipStatus'] && $itemData['dropshipStatus']['inventory'] ? $itemData['dropshipStatus']['inventory'] : 0);
+            $product->setCreatedAt(date("Y-m-d H:i:s"));
 
             try {
                 $product->save();
-            } catch (\Exception $e) {
-                $this->logger->critical('Error "product create": ', ['exception' => $e]);
-            }
 
-            if ($images) {
+                if ($product->getResourceCollection()->isEnabledFlat()) {
 
-//                $storeID = Mage_Core_Model_App::ADMIN_STORE_ID;
-//
-//                Mage::app()->setCurrentStore($storeID);
+                    $this->productFlatIndexerProcessor->reindexRow($product->getEntityId(), true);
+ 
+                    $product->setStockData($stockData);
 
-                $product = $this->productFactory->create()->load($product->getId());
-
-                $product->setMediaGallery(['images' => [], 'values' => []]);
-
-                foreach ($images as $i => $image) {
-
-                    $urlToImage = $image['src'];
-
-                    $imageDir = $this->directoryList->getPath('media') . '/tmp/stedger/images/';
-
-                    if (!file_exists($imageDir)) {
-                        mkdir($imageDir, 0777, true);
-                    }
-
-                    $filename = basename($urlToImage);
-                    $localImage = $imageDir . $filename;
-
-                    try {
-                        file_put_contents($localImage, file_get_contents($urlToImage));
-                    } catch (\Exception $e) {
-                        $this->logger->critical('Error "product create image": ', ['exception' => $e]);
-                    }
-
-                    $imageRole = [];
-                    if ($i == 0) {
-                        $imageRole = ['image', 'thumbnail', 'small_image'];
-                    }
-
-                    $product->addImageToMediaGallery($localImage, $imageRole, false, false);
-                }
-
-                try {
                     $product->save();
-                } catch (\Exception $e) {
-                    $this->logger->critical('Error "product  add images": ', ['exception' => $e]);
                 }
-            }
 
-            $productIds[] = $product->getId();
+                if ($images) {
+
+                    $product = $this->productFactory->create()->setStoreId(0)->load($product->getId());
+
+                    $product->setMediaGallery(['images' => [], 'values' => []]);
+
+                    foreach ($images as $i => $image) {
+
+                        try {
+
+                            $urlToImage = $image['src'];
+
+                            $imageDir = $this->directoryList->getPath('media') . '/tmp/stedger/images/';
+
+                            if (!file_exists($imageDir)) {
+                                mkdir($imageDir, 0777, true);
+                            }
+
+                            $filename = basename($urlToImage);
+                            $localImage = $imageDir . $filename;
+
+                            file_put_contents($localImage, file_get_contents($urlToImage));
+
+                            $imageRole = [];
+                            if ($i == 0) {
+                                $imageRole = ['image', 'thumbnail', 'small_image'];
+                            }
+
+                            $product->addImageToMediaGallery($localImage, $imageRole, true, false);
+
+//                            $newImage = $this->mediaGalleryProcessor->addImage($product, $localImage, $imageRole, false, false);
+//                            $this->mediaGalleryProcessor->updateImage($product, $newImage, ['label' => '', 'position' => $i, 'label_default' => '']);
+//                            $product->save();
+
+                        } catch (\Exception $e) {
+                            $this->logger->critical('Error "product create image": ', ['exception' => $e]);
+                        }
+                    }
+
+                    $product->save();
+                }
+
+                $productIds[] = $product->getId();
+
+            } catch (\Exception $e) {
+                $this->logger->critical('Error "product  add images": ', ['exception' => $e]);
+            }
         }
 
         $this->api->request('POST', 'connected_products/' . $apiData['id'] . '/status', ['status' => 'connected']);
@@ -172,15 +190,15 @@ class Integration
         if ($product && $product->getId()) {
 
             try {
-                $stockItem = $this->stockItemRepository->get($product->getId());
-                $stockItem->setData('is_in_stock', $apiData['dropshipStatus']['onStock'] ? 1 : 0);
+                $stockItem = $this->stockRegistry->getStockItem($product->getId());
+                $stockItem->setData('is_in_stock', $apiData['dropshipStatus'] && $apiData['dropshipStatus']['onStock'] ? 1 : 0);
                 $stockItem->setData('use_config_backorders', '0');
                 $stockItem->setData('backorders', '1');
                 $stockItem->save();
 
                 $this->productAction->updateAttributes(
                     [$product->getId()],
-                    ['stedger_qty' => $apiData['dropshipStatus']['inventory']],
+                    ['stedger_qty' => $apiData['dropshipStatus'] && $apiData['dropshipStatus']['inventory'] ? $apiData['dropshipStatus']['inventory'] : 0],
                     $this->storeManager->getStore()->getId()
                 );
 

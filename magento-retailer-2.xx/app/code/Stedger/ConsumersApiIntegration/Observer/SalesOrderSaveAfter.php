@@ -7,15 +7,15 @@ use Magento\Framework\Event\Observer;
 
 class SalesOrderSaveAfter implements ObserverInterface
 {
-    private $stockItemRepository;
+    private $stockRegistry;
     private $api;
 
     public function __construct(
-        \Magento\CatalogInventory\Model\Stock\StockItemRepository $stockItemRepository,
-        \Stedger\ConsumersApiIntegration\Model\Api                $api
+        \Magento\CatalogInventory\Api\StockRegistryInterface $stockRegistry,
+        \Stedger\ConsumersApiIntegration\Model\Api           $api
     )
     {
-        $this->stockItemRepository = $stockItemRepository;
+        $this->stockRegistry = $stockRegistry;
         $this->api = $api;
     }
 
@@ -68,10 +68,10 @@ class SalesOrderSaveAfter implements ObserverInterface
             $product = $item->getProduct();
 
             if (!$product->getStedgerIntegrationId()) {
-                return $this;
+                continue;
             }
 
-            $stockItem = $this->stockItemRepository->get($product->getId());
+            $stockItem = $this->stockRegistry->getStockItem($product->getId());
 
             $qtyOrdered = $item->getQtyOrdered();
             $stockQty = $stockItem->getQty();
@@ -95,6 +95,10 @@ class SalesOrderSaveAfter implements ObserverInterface
                 "priceWithTax" => ($item->getPrice() + $item->getTaxAmount()) * 100,
                 "productVariantId" => $product->getStedgerIntegrationId(),
             ];
+        }
+
+        if (array_key_exists('lineItems', $apiOrder) === false) {
+            return $this;
         }
 
         $stedgerOrder = $this->api->request('POST', 'orders', $apiOrder);

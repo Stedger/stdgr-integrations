@@ -13,8 +13,8 @@
         <observer name="Stedger_ConsumersApiIntegration::CheckoutCartAdd"
                   instance="Stedger\ConsumersApiIntegration\Observer\CheckoutCartAdd"/>
     </event>
-    <event name="sales_order_shipment_save_before">
-        <observer name="Stedger\ConsumersApiIntegrationorder::SalesOrderShipmentSaveBefore"
-                  instance="Stedger\ConsumersApiIntegration\Observer\SalesOrderShipmentSaveBefore"/>
-    </event>
+<!--    <event name="sales_order_shipment_save_before">-->
+<!--        <observer name="Stedger\ConsumersApiIntegrationorder::SalesOrderShipmentSaveBefore"-->
+<!--                  instance="Stedger\ConsumersApiIntegration\Observer\SalesOrderShipmentSaveBefore"/>-->
+<!--    </event>-->
 </config>
