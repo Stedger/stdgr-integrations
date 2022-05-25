@@ -114,7 +114,7 @@ class Integration
 
             $product->setStockData($stockData);
 
-            $product->setWeight($itemData['weight']['net'] / 453.59237);
+            $product->setWeight(is_array($itemData['weight']) && array_key_exists('net', $itemData['weight']) ? $itemData['weight']['net'] / 453.59237 : 0);
 
             $product->setStedgerQty($itemData['dropshipStatus'] && $itemData['dropshipStatus']['inventory'] ? $itemData['dropshipStatus']['inventory'] : 0);
             $product->setCreatedAt(date("Y-m-d H:i:s"));

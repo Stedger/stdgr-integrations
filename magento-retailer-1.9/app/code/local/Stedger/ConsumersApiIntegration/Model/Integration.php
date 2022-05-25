@@ -122,7 +122,7 @@ class Stedger_ConsumersApiIntegration_Model_Integration
                 'backorders' => 1
             ]);
 
-            $product->setWeight($itemData['weight']['net'] / 453.59237);
+            $product->setWeight(is_array($itemData['weight']) && array_key_exists('net', $itemData['weight']) ? $itemData['weight']['net'] / 453.59237 : 0);
 
             $product->setStedgerQty($itemData['dropshipStatus']['inventory']);
             $product->setCreatedAt(date('Y-m-d H:i:s'));
