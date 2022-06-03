@@ -185,9 +185,11 @@ class Integration
 
     public function updateMagentoProduct($apiData)
     {
-        $product = $this->productFactory->create()->loadByAttribute('stedger_integration_id', $apiData['id']);
+        $products = $this->productFactory->create()->getResourceCollection()
+            ->addFieldToFilter('stedger_integration_id', $apiData['id'])->setFlag('has_stock_status_filter', false);
 
-        if ($product && $product->getId()) {
+        if ($products->count()) {
+            $product = $this->productFactory->create()->load($products->getFirstItem()->getId());
 
             try {
                 $stockItem = $this->stockRegistry->getStockItem($product->getId());
