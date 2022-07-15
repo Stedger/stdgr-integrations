@@ -12,15 +12,17 @@ trait ProductTrait
     private $emulation;
     private $resource;
     private $connection;
+    public $logger;
 
     public function __construct(
-        \Magento\Store\Model\StoreManagerInterface $storeManager,
-        \Magento\Catalog\Model\ProductFactory $productFactory,
+        \Magento\Store\Model\StoreManagerInterface        $storeManager,
+        \Magento\Catalog\Model\ProductFactory             $productFactory,
         \Magento\CatalogInventory\Api\StockStateInterface $stockState,
-        \Stedger\APIIntegration\Model\Api $api,
-        \Stedger\APIIntegration\Helper\Data $helper,
-        \Magento\Store\Model\App\Emulation $emulation,
-        \Magento\Framework\App\ResourceConnection $resource
+        \Stedger\APIIntegration\Model\Api                 $api,
+        \Stedger\APIIntegration\Helper\Data               $helper,
+        \Magento\Store\Model\App\Emulation                $emulation,
+        \Magento\Framework\App\ResourceConnection         $resource,
+        \Psr\Log\LoggerInterface                          $logger
     )
     {
         $this->storeManager = $storeManager;
@@ -30,6 +32,7 @@ trait ProductTrait
         $this->helper = $helper;
         $this->emulation = $emulation;
         $this->resource = $resource;
+        $this->logger = $logger;
         $this->connection = $resource->getConnection();
     }
 
@@ -46,13 +49,19 @@ trait ProductTrait
 
             $this->sendProduct($product, false, $deleted ? $childId : false, true);
 
-            $ids = $this->connection->fetchCol(
-                'SELECT parent_id FROM ' . $this->connection->getTableName('catalog_product_relation') . ' WHERE `child_id` = "' . $childId . '"');
+            $catalogProductRelation = $this->connection->getTableName('catalog_product_relation');
 
-            foreach ($ids as $id) {
-                $product = $this->productFactory->create()->load($id);
+            $isTableExist = $this->connection->isTableExists($catalogProductRelation);
 
-                $this->sendProduct($product, false, $deleted ? $childId : false);
+            if($isTableExist) {
+                $ids = $this->connection->fetchCol(
+                    'SELECT parent_id FROM ' . $this->connection->getTableName('catalog_product_relation') . ' WHERE `child_id` = "' . $childId . '"');
+
+                foreach ($ids as $id) {
+                    $product = $this->productFactory->create()->load($id);
+
+                    $this->sendProduct($product, false, $deleted ? $childId : false);
+                }
             }
         }
     }

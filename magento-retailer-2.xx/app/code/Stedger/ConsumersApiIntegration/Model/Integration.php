@@ -5,6 +5,7 @@ namespace Stedger\ConsumersApiIntegration\Model;
 class Integration
 {
     private $storeManager;
+    private $resource;
     private $productFactory;
     private $stockRegistry;
     private $productAction;
@@ -17,9 +18,11 @@ class Integration
     private $orderFactory;
     private $mediaGalleryProcessor;
     private $productFlatIndexerProcessor;
+    private $scopeConfig;
 
     public function __construct(
         \Magento\Store\Model\StoreManagerInterface            $storeManager,
+        \Magento\Framework\App\ResourceConnection             $resource,
         \Magento\Catalog\Model\ProductFactory                 $productFactory,
         \Magento\CatalogInventory\Api\StockRegistryInterface  $stockRegistry,
         \Magento\Catalog\Model\ResourceModel\Product\Action   $productAction,
@@ -31,10 +34,12 @@ class Integration
         \Magento\Sales\Model\Order\Shipment\TrackFactory      $trackFactory,
         \Magento\Sales\Model\OrderFactory                     $orderFactory,
         \Magento\Catalog\Model\Product\Gallery\Processor      $mediaGalleryProcessor,
-        \Magento\Catalog\Model\Indexer\Product\Flat\Processor $productFlatIndexerProcessor
+        \Magento\Catalog\Model\Indexer\Product\Flat\Processor $productFlatIndexerProcessor,
+        \Magento\Framework\App\Config\ScopeConfigInterface    $scopeConfig
     )
     {
         $this->storeManager = $storeManager;
+        $this->resource = $resource;
         $this->productFactory = $productFactory;
         $this->stockRegistry = $stockRegistry;
         $this->productAction = $productAction;
@@ -47,6 +52,7 @@ class Integration
         $this->orderFactory = $orderFactory;
         $this->mediaGalleryProcessor = $mediaGalleryProcessor;
         $this->productFlatIndexerProcessor = $productFlatIndexerProcessor;
+        $this->scopeConfig = $scopeConfig;
     }
 
     public function createMagentoProduct($apiData)
@@ -62,8 +68,10 @@ class Integration
 
         foreach ($apiData['variants'] as $i => $itemData) {
 
+            $sku = $itemData['identifiers']['sku'];
+
             $product = $this->productFactory->create();
-            $product->load($product->getIdBySku($itemData['identifiers']['sku']));
+            $product->load($product->getIdBySku($sku));
 
             if ($product && $product->getId()) {
 
@@ -87,7 +95,7 @@ class Integration
                 $product = $this->productFactory->create();
             }
 
-            $product->setSku($itemData['identifiers']['sku']);
+            $product->setSku($sku);
             $product->setTypeId('simple');
             $product->setAttributeSetId($product->getDefaultAttributeSetId());
             $product->setWebsiteIds([$websiteId]);
@@ -103,6 +111,7 @@ class Integration
             $product->setVisibility(\Magento\Catalog\Model\Product\Visibility::VISIBILITY_BOTH);
             $product->setStatus(\Magento\Catalog\Model\Product\Attribute\Source\Status::STATUS_ENABLED);
             $product->setStoreId($this->storeManager->getStore()->getId());
+            $product->setUrlKey($this->createUrlKey($name, $sku));
 
             $stockData = [
                 'is_in_stock' => $itemData['dropshipStatus'] && $itemData['dropshipStatus']['onStock'] ? 1 : 0,
@@ -125,7 +134,7 @@ class Integration
                 if ($product->getResourceCollection()->isEnabledFlat()) {
 
                     $this->productFlatIndexerProcessor->reindexRow($product->getEntityId(), true);
- 
+
                     $product->setStockData($stockData);
 
                     $product->save();
@@ -161,10 +170,6 @@ class Integration
 
                             $product->addImageToMediaGallery($localImage, $imageRole, true, false);
 
-//                            $newImage = $this->mediaGalleryProcessor->addImage($product, $localImage, $imageRole, false, false);
-//                            $this->mediaGalleryProcessor->updateImage($product, $newImage, ['label' => '', 'position' => $i, 'label_default' => '']);
-//                            $product->save();
-
                         } catch (\Exception $e) {
                             $this->logger->critical('Error "product create image": ', ['exception' => $e]);
                         }
@@ -181,6 +186,48 @@ class Integration
         }
 
         $this->api->request('POST', 'connected_products/' . $apiData['id'] . '/status', ['status' => 'connected']);
+    }
+
+    private function createUrlKey($title, $sku)
+    {
+        $url = preg_replace('#[^0-9a-z]+#i', '-', $title);
+        $urlKey = strtolower($url);
+        $storeId = (int)$this->storeManager->getStore()->getStoreId();
+
+        $isUnique = $this->checkUrlKeyDuplicates($sku, $urlKey, $storeId);
+
+        if ($isUnique) {
+            return $urlKey;
+
+        }
+        return $urlKey . '-' . time();
+    }
+
+    private function checkUrlKeyDuplicates($sku, $urlKey, $storeId)
+    {
+        $connection = $this->resource->getConnection(\Magento\Framework\App\ResourceConnection::DEFAULT_CONNECTION);
+
+        $urlKey .= $this->scopeConfig->getValue(
+            \Magento\CatalogUrlRewrite\Model\ProductUrlPathGenerator::XML_PATH_PRODUCT_URL_SUFFIX,
+            \Magento\Store\Model\ScopeInterface::SCOPE_STORE,
+            $storeId
+        );
+
+        $sql = $connection->select()->from(
+            ['url_rewrite' => $connection->getTableName('url_rewrite')], ['request_path', 'store_id']
+        )->joinLeft(
+            ['cpe' => $connection->getTableName('catalog_product_entity')], "cpe.entity_id = url_rewrite.entity_id"
+        )->where('request_path IN (?)', $urlKey)
+            ->where('store_id IN (?)', $storeId)
+            ->where('cpe.sku not in (?)', $sku);
+
+        $urlKeyDuplicates = $connection->fetchAssoc($sql);
+
+        if (!empty($urlKeyDuplicates)) {
+            return false;
+        }
+
+        return true;
     }
 
     public function updateMagentoProduct($apiData)

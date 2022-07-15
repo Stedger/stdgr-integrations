@@ -9,6 +9,11 @@ class Product extends \Stedger\ConsumersApiIntegration\Controller\Api
         $resultJson = $this->resultJsonFactory->create();
 
         try {
+//            $writer = new \Zend_Log_Writer_Stream(BP . '/var/log/stedgerconsumerintegration.log');
+//            $logger = new \Zend_Log();
+//            $logger->addWriter($writer);
+//            $logger->info(file_get_contents('php://input'));
+
             $this->logger->info(file_get_contents('php://input'));
 
             $post = json_decode(file_get_contents('php://input'), true);

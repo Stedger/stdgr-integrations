@@ -17,6 +17,7 @@ class Stedger_ConsumersApiIntegration_Model_Api
                 curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $type);
                 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                    "stedger-version: 2022-03-01",
                     "Content-Type: application/json",
                     "Authorization: Bearer " . $secretKey
                 ]);
