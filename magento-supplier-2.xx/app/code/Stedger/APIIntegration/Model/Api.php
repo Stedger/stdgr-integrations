@@ -2,6 +2,8 @@
 
 namespace Stedger\APIIntegration\Model;
 
+use Stedger\APIIntegration\Helper\Data;
+
 class Api
 {
     private $_url = 'https://api.stedger.com/v1/';
@@ -9,7 +11,7 @@ class Api
     protected $helper;
 
     public function __construct(
-        \Stedger\APIIntegration\Helper\Data $helper
+        Data $helper
     )
     {
         $this->helper = $helper;
@@ -33,6 +35,8 @@ class Api
                 "Authorization: Bearer " . $secretKey
             ]);
 
+            curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, strtoupper($type));
 
             if (count($params)) {
@@ -41,7 +45,9 @@ class Api
             }
             $result = curl_exec($ch);
 
-            return json_decode($result, true);
+            if($result) {
+                return json_decode($result, true);
+            }
         }
         return false;
     }

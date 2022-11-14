@@ -37,6 +37,39 @@ class Stedger_ConsumersApiIntegration_Model_Integration
         }
     }
 
+    private function __updateStock($product, $status, $qty)
+    {
+        $stockItem = Mage::getModel('cataloginventory/stock_item')->loadByProduct($product);
+
+        $inventory = $this->__getConfigValue('inventory');
+
+        if ($inventory == 'magento_qty') {
+
+            $stockItem->setData('use_config_backorders', '1');
+            $stockItem->setData('is_in_stock', $status ? 1 : 0);
+            $stockItem->setData('qty', $qty);
+
+            $stedgerQty = '';
+
+        } else {
+
+            $stockItem->setData('use_config_backorders', '0');
+            $stockItem->setData('backorders', '1');
+            $stockItem->setData('is_in_stock', '1');
+
+            $stedgerQty = $qty;
+        }
+
+        $stockItem->save();
+
+        Mage::getSingleton('catalog/product_action')->updateAttributes(
+            [$product->getId()],
+            ['stedger_qty' => $stedgerQty],
+            Mage::app()->getStore()->getStoreId()
+        );
+
+    }
+
     public function createMagentoProduct($apiData)
     {
         $name = $apiData['title'];
@@ -58,18 +91,7 @@ class Stedger_ConsumersApiIntegration_Model_Integration
             if ($product && $product->getId()) {
                 $productIds[] = $product->getId();
 
-                $stockItem = Mage::getModel('cataloginventory/stock_item')->loadByProduct($product);
-
-                $stockItem->setData('use_config_backorders', '0');
-                $stockItem->setData('backorders', '1');
-                $stockItem->setData('is_in_stock', '1');
-                $stockItem->save();
-
-                Mage::getSingleton('catalog/product_action')->updateAttributes(
-                    [$product->getId()],
-                    ['stedger_qty' => $itemData['dropshipStatus']['inventory']],
-                    Mage::app()->getStore()->getStoreId()
-                );
+                $this->__updateStock($product, $itemData['dropshipStatus']['onStock'], $itemData['dropshipStatus']['inventory']);
 
                 continue;
             } else {
@@ -109,22 +131,35 @@ class Stedger_ConsumersApiIntegration_Model_Integration
             }
 
             $eanCode = $this->__getConfigValue('ean_code');
-            if ($eanCode && array_key_exists('ean', $apiData)) {
-                $product->setData($eanCode, $apiData['ean']);
+            if ($eanCode && array_key_exists('barcode', $itemData['identifiers'])) {
+                $product->setData($eanCode, $itemData['identifiers']['barcode']);
             }
 
             $product->setStoreId(Mage::app()->getStore()->getStoreId());
 
-            $product->setStockData([
-                'is_in_stock' => $itemData['dropshipStatus']['onStock'] ? 1 : 0,
-                'qty' => 0,
-                'use_config_backorders' => 0,
-                'backorders' => 1
-            ]);
+            $inventory = $this->__getConfigValue('inventory');
+            if ($inventory == 'magento_qty') {
+
+                $product->setStockData([
+                    'is_in_stock' => $itemData['dropshipStatus']['onStock'] ? 1 : 0,
+                    'qty' => $itemData['dropshipStatus']['inventory'],
+                ]);
+                $product->setStedgerQty('');
+
+            } else {
+
+                $product->setStockData([
+                    'is_in_stock' => $itemData['dropshipStatus']['onStock'] ? 1 : 0,
+                    'qty' => 0,
+                    'use_config_backorders' => 0,
+                    'backorders' => 1
+                ]);
+                $product->setStedgerQty($itemData['dropshipStatus']['inventory']);
+
+            }
 
             $product->setWeight(is_array($itemData['weight']) && array_key_exists('net', $itemData['weight']) ? $itemData['weight']['net'] / 453.59237 : 0);
 
-            $product->setStedgerQty($itemData['dropshipStatus']['inventory']);
             $product->setCreatedAt(date('Y-m-d H:i:s'));
 
             $product->save();
@@ -198,21 +233,9 @@ class Stedger_ConsumersApiIntegration_Model_Integration
     {
         $product = Mage::getModel('catalog/product')->loadByAttribute('stedger_integration_id', $apiData['id']);
 
-        if ($product->getId()) {
-
+        if ($product && $product->getId()) {
             try {
-                $stockItem = Mage::getModel('cataloginventory/stock_item')->loadByProduct($product->getId());
-                $stockItem->setData('is_in_stock', $apiData['dropshipStatus']['onStock'] ? 1 : 0);
-                $stockItem->setData('use_config_backorders', '0');
-                $stockItem->setData('backorders', '1');
-                $stockItem->save();
-
-                Mage::getSingleton('catalog/product_action')->updateAttributes(
-                    [$product->getId()],
-                    ['stedger_qty' => $apiData['dropshipStatus']['inventory']],
-                    Mage::app()->getStore()->getStoreId()
-                );
-
+                $this->__updateStock($product, $apiData['dropshipStatus']['onStock'], $apiData['dropshipStatus']['inventory']);
             } catch (Exception $e) {
                 Mage::helper('stedgerconsumerintegration')->log('Error "product update": ' . $e->getMessage());
             }

@@ -2,6 +2,15 @@
 
 namespace Stedger\APIIntegration\Observer;
 
+use Magento\Catalog\Model\ProductFactory;
+use Magento\CatalogInventory\Api\StockStateInterface;
+use Magento\Framework\App\ResourceConnection;
+use Magento\Store\Model\App\Emulation;
+use Magento\Store\Model\StoreManagerInterface;
+use Psr\Log\LoggerInterface;
+use Stedger\APIIntegration\Helper\Data;
+use Stedger\APIIntegration\Model\Api;
+
 trait ProductTrait
 {
     private $storeManager;
@@ -15,14 +24,14 @@ trait ProductTrait
     public $logger;
 
     public function __construct(
-        \Magento\Store\Model\StoreManagerInterface        $storeManager,
-        \Magento\Catalog\Model\ProductFactory             $productFactory,
-        \Magento\CatalogInventory\Api\StockStateInterface $stockState,
-        \Stedger\APIIntegration\Model\Api                 $api,
-        \Stedger\APIIntegration\Helper\Data               $helper,
-        \Magento\Store\Model\App\Emulation                $emulation,
-        \Magento\Framework\App\ResourceConnection         $resource,
-        \Psr\Log\LoggerInterface                          $logger
+        StoreManagerInterface $storeManager,
+        ProductFactory $productFactory,
+        StockStateInterface $stockState,
+        Api $api,
+        Data $helper,
+        Emulation $emulation,
+        ResourceConnection $resource,
+        LoggerInterface $logger
     )
     {
         $this->storeManager = $storeManager;
@@ -179,7 +188,11 @@ trait ProductTrait
             if ($simple === false) {
                 $productAttributeOptions = $product->getTypeInstance(true)->getConfigurableAttributesAsArray($product);
                 foreach ($productAttributeOptions as $productAttribute) {
-                    $apiProduct['tags'][] = $childProduct->getResource()->getAttribute(strtolower($productAttribute['label']))->getFrontend()->getValue($childProduct);
+                    $attribute = $childProduct->getResource()->getAttribute(strtolower($productAttribute['label']));
+                    if($attribute) {
+                        $apiProduct['tags'][] = $attribute->getFrontend()->getValue($childProduct);
+                    }
+
                 }
             }
 
