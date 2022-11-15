@@ -25,13 +25,13 @@ trait ProductTrait
 
     public function __construct(
         StoreManagerInterface $storeManager,
-        ProductFactory $productFactory,
-        StockStateInterface $stockState,
-        Api $api,
-        Data $helper,
-        Emulation $emulation,
-        ResourceConnection $resource,
-        LoggerInterface $logger
+        ProductFactory        $productFactory,
+        StockStateInterface   $stockState,
+        Api                   $api,
+        Data                  $helper,
+        Emulation             $emulation,
+        ResourceConnection    $resource,
+        LoggerInterface       $logger
     )
     {
         $this->storeManager = $storeManager;
@@ -62,7 +62,7 @@ trait ProductTrait
 
             $isTableExist = $this->connection->isTableExists($catalogProductRelation);
 
-            if($isTableExist) {
+            if ($isTableExist) {
                 $ids = $this->connection->fetchCol(
                     'SELECT parent_id FROM ' . $this->connection->getTableName('catalog_product_relation') . ' WHERE `child_id` = "' . $childId . '"');
 
@@ -89,8 +89,8 @@ trait ProductTrait
             $product->setCustomerGroupId($customerGroup);
         }
 
-        $localeCode = 'dk';
-        $countryCode = 'DK';
+        $localeCode = strtolower($this->helper->getConfig('general/country/default', $storeId));
+        $countryCode = strtoupper($localeCode) == 'dk' ? strtoupper($localeCode) : '*';
 
         $apiProduct = [
             "foreignId" => $product->getId() . '' . 1000,
@@ -189,7 +189,7 @@ trait ProductTrait
                 $productAttributeOptions = $product->getTypeInstance(true)->getConfigurableAttributesAsArray($product);
                 foreach ($productAttributeOptions as $productAttribute) {
                     $attribute = $childProduct->getResource()->getAttribute(strtolower($productAttribute['label']));
-                    if($attribute) {
+                    if ($attribute) {
                         $apiProduct['tags'][] = $attribute->getFrontend()->getValue($childProduct);
                     }
 
