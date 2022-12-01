@@ -1,17 +1,16 @@
 <?php
 
-namespace Stedger\APIIntegration\Observer;
+namespace Stedger\APIIntegration\Model;
 
 use Magento\Catalog\Model\ProductFactory;
 use Magento\CatalogInventory\Api\StockStateInterface;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Store\Model\App\Emulation;
 use Magento\Store\Model\StoreManagerInterface;
-use Psr\Log\LoggerInterface;
 use Stedger\APIIntegration\Helper\Data;
 use Stedger\APIIntegration\Model\Api;
 
-trait ProductTrait
+class StedgerProductRepository
 {
     private $storeManager;
     private $productFactory;
@@ -21,7 +20,6 @@ trait ProductTrait
     private $emulation;
     private $resource;
     private $connection;
-    public $logger;
 
     public function __construct(
         StoreManagerInterface $storeManager,
@@ -30,8 +28,7 @@ trait ProductTrait
         Api                   $api,
         Data                  $helper,
         Emulation             $emulation,
-        ResourceConnection    $resource,
-        LoggerInterface       $logger
+        ResourceConnection    $resource
     )
     {
         $this->storeManager = $storeManager;
@@ -41,38 +38,7 @@ trait ProductTrait
         $this->helper = $helper;
         $this->emulation = $emulation;
         $this->resource = $resource;
-        $this->logger = $logger;
         $this->connection = $resource->getConnection();
-    }
-
-    private function updateProduct($product, $deleted = false)
-    {
-        if ($product->getTypeId() == 'configurable') {
-            $product = $this->productFactory->create()->load($product->getId());
-            $this->sendProduct($product, $deleted);
-        } elseif ($product->getTypeId() == 'simple') {
-
-            $childId = $product->getId();
-
-            $product = $this->productFactory->create()->load($childId);
-
-            $this->sendProduct($product, false, $deleted ? $childId : false, true);
-
-            $catalogProductRelation = $this->connection->getTableName('catalog_product_relation');
-
-            $isTableExist = $this->connection->isTableExists($catalogProductRelation);
-
-            if ($isTableExist) {
-                $ids = $this->connection->fetchCol(
-                    'SELECT parent_id FROM ' . $this->connection->getTableName('catalog_product_relation') . ' WHERE `child_id` = "' . $childId . '"');
-
-                foreach ($ids as $id) {
-                    $product = $this->productFactory->create()->load($id);
-
-                    $this->sendProduct($product, false, $deleted ? $childId : false);
-                }
-            }
-        }
     }
 
     private function sendProduct($product, $deleted = false, $deletedChildId = false, $simple = false)
@@ -210,5 +176,35 @@ trait ProductTrait
         ], null, $storeId);
 
         $this->emulation->stopEnvironmentEmulation();
+    }
+
+    public function updateProduct($product, $deleted = false)
+    {
+        if ($product->getTypeId() == 'configurable') {
+            $product = $this->productFactory->create()->load($product->getId());
+            $this->sendProduct($product, $deleted);
+        } elseif ($product->getTypeId() == 'simple') {
+
+            $childId = $product->getId();
+
+            $product = $this->productFactory->create()->load($childId);
+
+            $this->sendProduct($product, false, $deleted ? $childId : false, true);
+
+            $catalogProductRelation = $this->connection->getTableName('catalog_product_relation');
+
+            $isTableExist = $this->connection->isTableExists($catalogProductRelation);
+
+            if ($isTableExist) {
+                $ids = $this->connection->fetchCol(
+                    'SELECT parent_id FROM ' . $this->connection->getTableName('catalog_product_relation') . ' WHERE `child_id` = "' . $childId . '"');
+
+                foreach ($ids as $id) {
+                    $product = $this->productFactory->create()->load($id);
+
+                    $this->sendProduct($product, false, $deleted ? $childId : false);
+                }
+            }
+        }
     }
 }

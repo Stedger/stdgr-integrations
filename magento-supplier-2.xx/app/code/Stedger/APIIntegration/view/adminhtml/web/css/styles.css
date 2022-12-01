@@ -1,0 +1,14 @@
+.start-integration {
+    margin-bottom: 20px;
+}
+
+#content-processing {
+    max-height: 500px;
+    overflow: scroll;
+    background-color: #0a0a0a;
+    color: #ffffff
+}
+
+#content-processing p {
+    margin-left: 10px;
+}

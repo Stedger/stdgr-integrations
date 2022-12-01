@@ -6,28 +6,32 @@ use Magento\Backend\App\Action\Context;
 use Magento\Catalog\Model\ResourceModel\Product\CollectionFactory;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Stedger\APIIntegration\Helper\Data;
-use Magento\Framework\Event\ManagerInterface;
+use Stedger\APIIntegration\Model\StedgerProductRepository;
+use Magento\Catalog\Api\ProductRepositoryInterface;
 
 class Start extends \Magento\Backend\App\Action
 {
     private $helper;
     private $productCollectionFactory;
     private $resultJsonFactory;
-    private $eventManager;
+    private $stedgerProductRepository;
+    private $productRepository;
 
     public function __construct(
-        Context $context,
-        Data $helper,
-        CollectionFactory $productCollectionFactory,
-        JsonFactory $resultJsonFactory,
-        ManagerInterface $eventManager
+        Context                    $context,
+        Data                       $helper,
+        CollectionFactory          $productCollectionFactory,
+        JsonFactory                $resultJsonFactory,
+        StedgerProductRepository   $stedgerProductRepository,
+        ProductRepositoryInterface $productRepository
     )
     {
         parent::__construct($context);
         $this->helper = $helper;
         $this->productCollectionFactory = $productCollectionFactory;
         $this->resultJsonFactory = $resultJsonFactory;
-        $this->eventManager = $eventManager;
+        $this->stedgerProductRepository = $stedgerProductRepository;
+        $this->productRepository = $productRepository;
     }
 
     public function execute()
@@ -38,6 +42,13 @@ class Start extends \Magento\Backend\App\Action
 
         $productCollection = $this->productCollectionFactory->create()->addAttributeToSelect('*');
 
+        $allowCategories = $this->helper->getConfig('stedgerintegration/product_settings/categories');
+
+        if ($allowCategories) {
+            $allowCategories = explode(',', str_replace(' ', '', $allowCategories));
+            $productCollection->addCategoriesFilter(['in' => $allowCategories]);
+        }
+
         try {
             $fp = fopen($this->helper->getProcessIntegrationFilePath(), 'w');
             ftruncate($fp, 0);
@@ -46,27 +57,21 @@ class Start extends \Magento\Backend\App\Action
 
             if ($productsCount) {
                 $i = 1;
+
                 foreach ($productCollection as $product) {
-
-                    $error = new \Magento\Framework\DataObject(['message' => '']);
-
-                    $objectManager = \Magento\Framework\App\ObjectManager::getInstance();
-                    $product = $objectManager->create('Magento\Catalog\Api\ProductRepositoryInterface')->getById($product->getId());
-
                     try {
+                        $product = $this->productRepository->getById($product->getId());
                         $product->setOrigData('website_ids', $product->getWebsiteIds());
-
-                        $this->eventManager->dispatch('catalog_product_save_after', ['product' => $product, 'data_object' => $product, 'error' => $error]);
-
-                        fwrite($fp, $productsCount . ' / ' . $i . ' : ' . $product->getName() . ' ' . $error->getMessage() . ' |');
-
+                        $this->stedgerProductRepository->updateProduct($product);
+                        fwrite($fp, $productsCount . ' / ' . $i . ' : ' . $product->getName() . ' |');
                     } catch (\Exception $e) {
                         fwrite($fp, $productsCount . ' / ' . $i . ' : ' . $product->getName() . ' ' . $e->getMessage() . ' |');
-
                     }
 
                     $i++;
                 }
+            } else {
+                fwrite($fp, 'Products not found.');
             }
             fclose($fp);
 

@@ -1,66 +1,56 @@
-<style>
-    .start-integration {
-        margin-bottom: 20px;
-    }
+<?php if ($block->canSync()): ?>
 
-    #content-processing {
-        max-height: 500px;
-        overflow: scroll;
-        background-color: #0a0a0a;
-        color: #ffffff
-    }
+    <script type="text/javascript">
+        require(["jquery"], function ($) {
 
-    #content-processing p {
-        margin-left: 10px;
-    }
-</style>
-<script type="text/javascript">
-    require(["jquery"], function ($) {
+            var startintegrationurl = '<?= $block->getUrl('adminstedgerintegration/integration/start') ?>';
+            var statusintegrationurl = '<?= $block->getUrl('adminstedgerintegration/integration/getprocess') ?>';
 
-        var startintegrationurl = '<?= $block->getUrl('adminstedgerintegration/integration/start') ?>';
-        var statusintegrationurl = '<?= $block->getUrl('adminstedgerintegration/integration/getprocess') ?>';
+            startStedgerIntegration = function () {
 
-        startStedgerIntegration = function () {
+                var process = setInterval(
+                    function () {
+                        $.ajax({
+                            url: statusintegrationurl,
+                            type: 'GET',
+                            complete: function (response) {
+                                var html = JSON.parse(response.responseText).content;
+                                document.getElementById('content-processing').innerHTML = html;
+                            },
+                            error: function (xhr, status, errorThrown) {
+                                console.log('Error happens. Try again.');
+                            }
+                        });
+                    }, 1000);
 
-            var process = setInterval(
-                function () {
-                    $.ajax({
-                        url: statusintegrationurl,
-                        type: 'GET',
-                        complete: function (response) {
-                            var html = JSON.parse(response.responseText).content;
-                            document.getElementById('content-processing').innerHTML = html;
-                        },
-                        error: function (xhr, status, errorThrown) {
-                            console.log('Error happens. Try again.');
+                $.ajax({
+                    url: startintegrationurl,
+                    type: 'GET',
+                    complete: function (response) {
+
+                        setTimeout(function () {
+                            clearInterval(process);
+                        }, 300)
+
+                        var result = JSON.parse(response.responseText);
+
+                        if (result.status == 'error') {
+                            alert(result.message);
                         }
-                    });
-                }, 1000);
-
-            $.ajax({
-                url: startintegrationurl,
-                type: 'GET',
-                complete: function (response) {
-
-                    setTimeout(function () {
-                        clearInterval(process);
-                    }, 300)
-
-                    var result = JSON.parse(response.responseText);
-
-                    if (result.status == 'error') {
-                        alert(result.message);
+                    },
+                    error: function (xhr, status, errorThrown) {
+                        console.log('Error happens. Try again.');
                     }
-                },
-                error: function (xhr, status, errorThrown) {
-                    console.log('Error happens. Try again.');
-                }
-            });
-        }
+                });
+            }
+        });
+    </script>
 
+    <button class="start-integration scalable" type="button" onclick="startStedgerIntegration()">
+        Start Integration
+    </button>
+    <div id="content-processing"></div>
 
-    });
-</script>
-
-<button class="start-integration scalable" type="button" onclick="startStedgerIntegration()">Start Integration</button>
-<div id="content-processing"></div>
+<?php else: ?>
+    <div>Please enter a public and a private keys.</div>
+<?php endif; ?>
