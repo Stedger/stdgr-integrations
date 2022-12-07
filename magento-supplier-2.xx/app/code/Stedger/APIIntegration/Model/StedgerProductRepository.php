@@ -126,7 +126,7 @@ class StedgerProductRepository
                     ]
                 ],
                 "weight" => [
-                    "net" => $childProduct->getWeight() * 453.59237,
+                    "net" => ceil($childProduct->getWeight() * 453.59237),
                 ]
             ];
 

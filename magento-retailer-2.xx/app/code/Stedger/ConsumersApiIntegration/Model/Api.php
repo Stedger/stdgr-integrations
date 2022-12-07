@@ -15,7 +15,7 @@ class Api
         $this->helper = $helper;
     }
 
-    public function request($type = 'GET', $endpoint, $params = [])
+    public function request($type, $endpoint, $params = [])
     {
         $secretKey = $this->helper->getConfig('stedgerconsumerintegration/settings/secret_key');
 

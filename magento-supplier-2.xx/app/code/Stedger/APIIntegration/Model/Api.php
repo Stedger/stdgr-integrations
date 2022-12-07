@@ -17,7 +17,7 @@ class Api
         $this->helper = $helper;
     }
 
-    public function request($type = 'GET', $endpoint, $params = [], $secretKey = null, $storeId = null)
+    public function request($type, $endpoint, $params = [], $secretKey = null, $storeId = null)
     {
         if (!$secretKey) {
             $secretKey = $this->helper->getConfig('stedgerintegration/settings/secret_key');
@@ -45,8 +45,17 @@ class Api
             }
             $result = curl_exec($ch);
 
-            if($result) {
-                return json_decode($result, true);
+            if ($result) {
+                $result = json_decode($result, true);
+
+                if (isset($result['error']) && $result['error']) {
+                    throw new \Exception(__($result['error']['message']));
+                }
+
+                return $result;
+
+            } else {
+                throw new \Exception(__('Api error.'));
             }
         }
         return false;

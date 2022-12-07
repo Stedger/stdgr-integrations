@@ -45,7 +45,7 @@ class Keys extends \Magento\Framework\App\Config\Value
             $webhooks = $this->api->request('get', 'webhooks', [], $secretKey);
 
             $addWebhook = true;
-            if ($webhooks && $webhooks["totalCount"]) {
+            if ($webhooks && isset($webhooks["totalCount"])) {
                 foreach ($webhooks["nodes"] as $webhook) {
                     if ($webhook["url"] == $url && $webhook["enabledEvents"] == $events) {
                         $addWebhook = false;
